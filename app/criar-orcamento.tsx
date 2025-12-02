@@ -5,15 +5,24 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TextInput,
 } from "react-native";
+import { supabase } from "../utils/supabase";
 
 // Componente de "chip" selecionável (multi-seleção)
-function Chip({ label, selected, onPress }) {
+function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -30,7 +39,15 @@ function Chip({ label, selected, onPress }) {
 }
 
 // Botão de opção (Sim/Não/Talvez etc - seleção única)
-function OptionButton({ label, active, onPress }) {
+function OptionButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -51,6 +68,57 @@ function OptionButton({ label, active, onPress }) {
   );
 }
 
+/**
+ * Máscaras manuais
+ */
+
+// (xx) xxxxx-xxxx
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11); // até 11 dígitos
+
+  if (digits.length === 0) return "";
+
+  if (digits.length <= 2) {
+    return `(${digits}`;
+  }
+
+  if (digits.length <= 7) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+// dd/mm/aaaa
+function formatDate(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8); // ddmmyyyy
+
+  if (digits.length === 0) return "";
+
+  if (digits.length <= 2) {
+    return digits;
+  }
+
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+// hh:mm
+function formatTime(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 4); // hhmm
+
+  if (digits.length === 0) return "";
+
+  if (digits.length <= 2) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
 export default function CriarOrcamentoScreen() {
   // Dados principais
   const [responsavel, setResponsavel] = useState("");
@@ -66,11 +134,11 @@ export default function CriarOrcamentoScreen() {
   const [temChurrasqueira, setTemChurrasqueira] = useState(""); // "Sim" | "Não"
 
   // Tipo de evento
-  const [tipoEvento, setTipoEvento] = useState(""); // uma das opções
+  const [tipoEvento, setTipoEvento] = useState("");
   const [tipoEventoOutro, setTipoEventoOutro] = useState("");
 
   // Tipo de refeição
-  const [tipoRefeicao, setTipoRefeicao] = useState(""); // churrasco tradicional, fogo de chão, etc
+  const [tipoRefeicao, setTipoRefeicao] = useState("");
 
   // Entradas (multi)
   const entradasOpcoes = [
@@ -83,7 +151,9 @@ export default function CriarOrcamentoScreen() {
     "Mandioca Frita",
     "Opção 8",
   ];
-  const [entradasSelecionadas, setEntradasSelecionadas] = useState([]);
+  const [entradasSelecionadas, setEntradasSelecionadas] = useState<string[]>(
+    []
+  );
 
   // Churrasco Tradicional (multi)
   const churrascoTradicionalOpcoes = [
@@ -105,7 +175,7 @@ export default function CriarOrcamentoScreen() {
     "Costelinha Temperada",
   ];
   const [churrascoTradicionalSelecionado, setChurrascoTradicionalSelecionado] =
-    useState([]);
+    useState<string[]>([]);
   const [churrascoTradOutro, setChurrascoTradOutro] = useState("");
 
   // Fogo de Chão (multi)
@@ -117,7 +187,7 @@ export default function CriarOrcamentoScreen() {
     "Galeto",
     "Peixe",
   ];
-  const [fogoChaoSelecionado, setFogoChaoSelecionado] = useState([]);
+  const [fogoChaoSelecionado, setFogoChaoSelecionado] = useState<string[]>([]);
 
   // Churrasco Especial (multi)
   const churrascoEspecialOpcoes = [
@@ -135,7 +205,7 @@ export default function CriarOrcamentoScreen() {
     "Salmão Defumado",
   ];
   const [churrascoEspecialSelecionado, setChurrascoEspecialSelecionado] =
-    useState([]);
+    useState<string[]>([]);
 
   // Acompanhamentos (multi)
   const acompanhamentosOpcoes = [
@@ -163,19 +233,21 @@ export default function CriarOrcamentoScreen() {
     "Salada Tropical(com frutas)",
   ];
   const [acompanhamentosSelecionados, setAcompanhamentosSelecionados] =
-    useState([]);
+    useState<string[]>([]);
 
   // Sobremesas (multi)
   const sobremesasOpcoes = [
     "Panqueca de Doce de Leite",
-    "Abacaxi Caramelizado com Leite Condensado e Raspas de Limão",
+    "Abacaxi Caramelizado com Leite Condensado e Leite Condensado",
     "Banana prensada com canela e Açucar",
     "Banana com chocolate",
     "Queijo coalho com doce de Leite e farofa de castanha",
     "Romeu e Julieta",
     "Sorvete",
   ];
-  const [sobremesasSelecionadas, setSobremesasSelecionadas] = useState([]);
+  const [sobremesasSelecionadas, setSobremesasSelecionadas] = useState<
+    string[]
+  >([]);
   const [sobremesaOutro, setSobremesaOutro] = useState("");
 
   // Serviços adicionais
@@ -186,7 +258,7 @@ export default function CriarOrcamentoScreen() {
   // Observações
   const [mensagemExtra, setMensagemExtra] = useState("");
 
-  function toggleFromArray(list, value) {
+  function toggleFromArray(list: string[], value: string) {
     if (list.includes(value)) {
       return list.filter((item) => item !== value);
     }
@@ -226,7 +298,9 @@ export default function CriarOrcamentoScreen() {
     setMensagemExtra("");
   }
 
-  const handleEnviarOrcamento = () => {
+  const handleEnviarOrcamento = async () => {
+    console.log("▶️ Cliquei no botão ENVIAR");
+
     if (!responsavel.trim() || !telefone.trim()) {
       Alert.alert(
         "Atenção",
@@ -238,44 +312,81 @@ export default function CriarOrcamentoScreen() {
     const dadosFormulario = {
       responsavel,
       telefone,
-      dataEvento,
-      horaEvento,
-      horaIniciarServico,
-      totalPessoas,
-      adultos,
-      criancas5,
-      criancas10,
-      localEvento,
-      temChurrasqueira,
-      tipoEvento,
-      tipoEventoOutro,
-      tipoRefeicao,
-      entradasSelecionadas,
-      churrascoTradicionalSelecionado,
-      churrascoTradOutro,
-      fogoChaoSelecionado,
-      churrascoEspecialSelecionado,
-      acompanhamentosSelecionados,
-      sobremesasSelecionadas,
-      sobremesaOutro,
-      precisaGarcom,
-      precisaDescartaveis,
-      precisaPrataria,
-      mensagemExtra,
+      data_evento: dataEvento || null,
+      hora_evento: horaEvento || null,
+      hora_servir: horaIniciarServico || null,
+      total_pessoas: totalPessoas || null,
+      adultos: adultos || null,
+      criancas5: criancas5 || null,
+      criancas10: criancas10 || null,
+      local_evento: localEvento || null,
+      tem_churrasqueira: temChurrasqueira || null,
+      tipo_evento: tipoEvento || null,
+      tipo_evento_outro: tipoEventoOutro || null,
+      tipo_refeicao: tipoRefeicao || null,
+      entradas: entradasSelecionadas.length ? entradasSelecionadas : null,
+      churrasco_tradicional: churrascoTradicionalSelecionado.length
+        ? churrascoTradicionalSelecionado
+        : null,
+      churrasco_tradicional_outro: churrascoTradOutro || null,
+      fogo_chao: fogoChaoSelecionado.length ? fogoChaoSelecionado : null,
+      churrasco_especial: churrascoEspecialSelecionado.length
+        ? churrascoEspecialSelecionado
+        : null,
+      acompanhamentos: acompanhamentosSelecionados.length
+        ? acompanhamentosSelecionados
+        : null,
+      sobremesas: sobremesasSelecionadas.length
+        ? sobremesasSelecionadas
+        : null,
+      sobremesa_outro: sobremesaOutro || null,
+      precisa_garcom: precisaGarcom || null,
+      precisa_descartaveis: precisaDescartaveis || null,
+      precisa_prataria: precisaPrataria || null,
+      mensagem_extra: mensagemExtra || null,
+      status: "novo",
+      criado_em: new Date().toISOString(),
     };
 
-    // 📌 Aqui depois vamos:
-    // - enviar isso para o backend (Supabase / API)
-    // - ou gerar uma mensagem pronta pro WhatsApp
-    console.log("Dados do formulário de orçamento:", dadosFormulario);
+    console.log("📝 Dados do formulário de orçamento:", dadosFormulario);
 
-    Alert.alert(
-      "Solicitação enviada",
-      "Suas informações foram registradas. A PuoBBQ entrará em contato em breve com o orçamento do seu evento. 🍖🔥"
-    );
+    try {
+      const { data, error } = await supabase
+        .from("orcamentos")
+        .insert([dadosFormulario])
+        .select();
 
-    // Se quiser, já podemos limpar o formulário após enviar:
-    // resetForm();
+      console.log("✅ Supabase data (orcamentos):", data);
+      console.log("⚠️ Supabase error (orcamentos):", error);
+
+      if (error) {
+        Alert.alert(
+          "Erro ao salvar no Supabase",
+          `Mensagem: ${error.message}`
+        );
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        Alert.alert(
+          "Aviso",
+          "Supabase não retornou dados, mas também não informou erro. Verifique a tabela depois."
+        );
+      } else {
+        Alert.alert(
+          "Solicitação enviada",
+          "Suas informações foram registradas. A PuoBBQ entrará em contato em breve com o orçamento do seu evento. 🍖🔥"
+        );
+      }
+
+      resetForm();
+    } catch (err: any) {
+      console.log("💥 ERRO DESCONHECIDO ao enviar orçamento:", err);
+      Alert.alert(
+        "Erro inesperado",
+        `Detalhes: ${err?.message || "sem detalhes"}`
+      );
+    }
   };
 
   return (
@@ -313,14 +424,27 @@ export default function CriarOrcamentoScreen() {
             />
 
             <Text style={styles.label}>Telefone para contato (WhatsApp)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: (11) 99999-9999"
-              placeholderTextColor="#6B7280"
-              keyboardType="phone-pad"
-              value={telefone}
-              onChangeText={setTelefone}
-            />
+            {Platform.OS === "web" ? (
+              <input
+                style={styles.inputWeb as any}
+                placeholder="Ex: (11) 99999-9999"
+                maxLength={15}
+                value={telefone}
+                onChange={(e: any) =>
+                  setTelefone(formatPhone(e.target.value))
+                }
+              />
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: (11) 99999-9999"
+                placeholderTextColor="#6B7280"
+                keyboardType="phone-pad"
+                value={telefone}
+                onChangeText={(text) => setTelefone(formatPhone(text))}
+                maxLength={15}
+              />
+            )}
           </View>
 
           {/* Bloco 2: Datas e horários */}
@@ -330,36 +454,80 @@ export default function CriarOrcamentoScreen() {
             <View style={styles.inlineRow}>
               <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={styles.label}>Data do evento</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 20/12/2025"
-                  placeholderTextColor="#6B7280"
-                  value={dataEvento}
-                  onChangeText={setDataEvento}
-                />
+                {Platform.OS === "web" ? (
+                  <input
+                    style={styles.inputWeb as any}
+                    placeholder="Ex: 20/12/2025"
+                    maxLength={10}
+                    value={dataEvento}
+                    onChange={(e: any) =>
+                      setDataEvento(formatDate(e.target.value))
+                    }
+                  />
+                ) : (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ex: 20/12/2025"
+                    placeholderTextColor="#6B7280"
+                    keyboardType="numeric"
+                    value={dataEvento}
+                    onChangeText={(text) => setDataEvento(formatDate(text))}
+                    maxLength={10}
+                  />
+                )}
               </View>
               <View style={{ flex: 1, marginLeft: 8 }}>
                 <Text style={styles.label}>Horário do evento</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ex: 19:00"
-                  placeholderTextColor="#6B7280"
-                  value={horaEvento}
-                  onChangeText={setHoraEvento}
-                />
+                {Platform.OS === "web" ? (
+                  <input
+                    style={styles.inputWeb as any}
+                    placeholder="Ex: 19:00"
+                    maxLength={5}
+                    value={horaEvento}
+                    onChange={(e: any) =>
+                      setHoraEvento(formatTime(e.target.value))
+                    }
+                  />
+                ) : (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ex: 19:00"
+                    placeholderTextColor="#6B7280"
+                    keyboardType="numeric"
+                    value={horaEvento}
+                    onChangeText={(text) => setHoraEvento(formatTime(text))}
+                    maxLength={5}
+                  />
+                )}
               </View>
             </View>
 
             <Text style={styles.label}>
               Horário para iniciar o serviço de "Servir a comida"
             </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: 20:00"
-              placeholderTextColor="#6B7280"
-              value={horaIniciarServico}
-              onChangeText={setHoraIniciarServico}
-            />
+            {Platform.OS === "web" ? (
+              <input
+                style={styles.inputWeb as any}
+                placeholder="Ex: 20:00"
+                maxLength={5}
+                value={horaIniciarServico}
+                onChange={(e: any) =>
+                  setHoraIniciarServico(formatTime(e.target.value))
+                }
+              />
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: 20:00"
+                placeholderTextColor="#6B7280"
+                keyboardType="numeric"
+                value={horaIniciarServico}
+                onChangeText={(text) =>
+                  setHoraIniciarServico(formatTime(text))
+                }
+                maxLength={5}
+              />
+            )}
           </View>
 
           {/* Bloco 3: Quantidade de pessoas */}
@@ -764,8 +932,6 @@ const styles = StyleSheet.create({
     color: "#E5E7EB",
     marginBottom: 8,
   },
-
-  // Subcards dentro do card de dados do evento
   subCard: {
     backgroundColor: "#020617",
     borderRadius: 12,
@@ -780,7 +946,6 @@ const styles = StyleSheet.create({
     color: "#F9FAFB",
     marginBottom: 6,
   },
-
   label: {
     fontSize: 13,
     color: "#D1D5DB",
@@ -797,6 +962,19 @@ const styles = StyleSheet.create({
     color: "#F9FAFB",
     fontSize: 14,
     marginBottom: 6,
+  },
+  inputWeb: {
+    width: "100%",
+    backgroundColor: "#020617",
+    borderWidth: 1,
+    borderColor: "#374151",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    color: "#F9FAFB",
+    fontSize: 14,
+    marginBottom: 6,
+    outline: "none",
   },
   inlineRow: {
     flexDirection: "row",
